@@ -263,7 +263,7 @@ ThreadPool* ThreadPool::allocThreadPools(x265_param* p, int& numPools, bool isTh
     bool bNumaSupport = false;
 
 #if defined(_WIN32_WINNT) && _WIN32_WINNT >= _WIN32_WINNT_WIN7 
-    bNumaSupport = true;
+    bNumaSupport = false;
 #elif HAVE_LIBNUMA
     bNumaSupport = numa_available() >= 0;
 #endif
@@ -274,7 +274,7 @@ ThreadPool* ThreadPool::allocThreadPools(x265_param* p, int& numPools, bool isTh
     for (int i = 0; i < numNumaNodes; i++)
     {
         GetNumaNodeProcessorMaskEx((UCHAR)i, groupAffinityPointer);
-        cpusPerNode[i] = popCount(groupAffinityPointer->Mask)*2;
+        cpusPerNode[i] = popCount(groupAffinityPointer->Mask);
     }
     delete groupAffinityPointer;
 #elif HAVE_LIBNUMA
