@@ -262,9 +262,38 @@ ThreadPool* ThreadPool::allocThreadPools(x265_param* p, int& numPools, bool isTh
     int numNumaNodes = X265_MIN(getNumaNodeCount(), MAX_NODE_NUM);
     bool bNumaSupport = false;
 
+#if defined(_WIN32_WINNT) && _WIN32_WINNT >= _WIN32_WINNT_WIN7 
+    bNumaSupport = false;
+#elif HAVE_LIBNUMA
+    bNumaSupport = numa_available() >= 0;
+#endif
 
 
+#if defined(_WIN32_WINNT) && _WIN32_WINNT >= _WIN32_WINNT_WIN7
+    PGROUP_AFFINITY groupAffinityPointer = new GROUP_AFFINITY;
+    for (int i = 0; i < numNumaNodes; i++)
+    {
+        GetNumaNodeProcessorMaskEx((UCHAR)i, groupAffinityPointer);
+        cpusPerNode[i] = popCount(groupAffinityPointer->Mask);
+    }
+    delete groupAffinityPointer;
+#elif HAVE_LIBNUMA
+    if (bNumaSupport)
+    {
+        struct bitmask* bitMask = numa_allocate_cpumask();
+        for (int i = 0; i < numNumaNodes; i++)
+        {
+            int ret = numa_node_to_cpus(i, bitMask);
+            if (!ret)
+                cpusPerNode[i] = numa_bitmask_weight(bitMask);
+            else
+                x265_log(p, X265_LOG_ERROR, "Failed to genrate CPU mask\n");
+        }
+        numa_free_cpumask(bitMask);
+    }
+#else // NUMA not supported
     cpusPerNode[0] = getCpuCount();
+#endif
 
     if (bNumaSupport && p->logLevel >= X265_LOG_DEBUG)
     for (int i = 0; i < numNumaNodes; i++)
