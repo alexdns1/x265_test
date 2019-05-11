@@ -264,7 +264,7 @@ ThreadPool* ThreadPool::allocThreadPools(x265_param* p, int& numPools, bool isTh
 
 
 
-    cpusPerNode[0] = 48;
+    cpusPerNode[0] = getCpuCount();
 
     if (bNumaSupport && p->logLevel >= X265_LOG_DEBUG)
     for (int i = 0; i < numNumaNodes; i++)
